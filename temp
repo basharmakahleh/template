@@ -66,26 +66,26 @@ void precompute()
         }
     }
 }
-const int MOD = 998244353;
+const int MOD = 1e9+7;
  
-inline int add(int a, int b)
+inline ll add(ll a, ll b)
 {
     return (a + b) % MOD;
 }
  
-inline int sub(int a, int b)
+inline ll sub(ll a, ll b)
 {
     return (a - b + MOD) % MOD;
 }
  
-inline int mul(int a, int b)
+inline ll mul(ll a, ll b)
 {
     return (ll)a * b % MOD;
 }
  
-int power(int x, int p)
+ll power(ll x, ll p)
 {
-    int ret = 1;
+    ll ret = 1;
     while (p > 0)
     {
         if (p % 2)
@@ -96,12 +96,12 @@ int power(int x, int p)
     return ret;
 }
  
-int inv(int x)
+ll inv(ll x)
 {
     return power(x, MOD - 2);
 }
  
-inline int divide(int a, int b)
+inline ll divide(ll a, ll b)
 {
     return mul(a, inv(b));
 }
@@ -403,6 +403,7 @@ struct sp
         n = arr.size();
         logs = 63 - __builtin_clzll(n) + 1;
         freq.resize(logs);
+        build();
     }
     void build()
     {
@@ -497,28 +498,124 @@ return divs;
 }
 
 
-struct seg {
-    int n; vector<int> t;
-    seg(int tn){
-        n = tn; t.resize(4 * n, 0);
-    }
-
-    void upd(int s, int e, int i, int qi, int v) {
-        if (s == e) {
-            t[i] += v; return;
+struct seg{
+        ll n;
+        vll tree;
+        vll a;
+        seg(vll &aa){
+            n = aa.size()-1;
+            a = aa;
+            tree.assign(4*n+1,0);
+            build(1,1,n);
         }
-        int m = (s + e) / 2;
-        if(qi <= m) upd(s, m, 2 * i, qi, v);
-        else        upd(m + 1, e, 2 * i + 1, qi, v);
-        t[i] = mul(t[2 * i],t[2 * i + 1]);
-    }
-    int qry(int s, int e, int i, int l, int r) {
-        if (s > r || e < l) return 1;
-        if (s >= l && e <= r) return t[i];
-        int m = (s + e) / 2;
-        return mul(qry(s, m, 2 * i, l, r), qry(m + 1, e, 2 * i + 1, l, r));
-    }
-};
+        void build(ll node, ll l, ll r){
+            if(l == r){
+                tree[node] = a[l];
+                return;
+            }
+            ll mid = (l+r)/2;
+            build(2*node,l,mid);
+            build(2*node+1,mid+1,r);
+            tree[node] = tree[node*2] + tree[node*2+1];
+        }
+
+        void update(ll node ,ll l,ll r,ll idx,ll val){
+            if(l == r){
+                tree[node] = val;
+                return;
+            }
+            ll mid = (l+r)/2;
+            if(idx<=mid){
+                update(2*node,l,mid,idx,val);
+            }
+            else{
+                update(2*node+1,mid+1,r,idx,val);
+            }
+            tree[node] = tree[node*2] + tree[node*2+1];
+        }
+
+        ll query(ll node,ll l,ll r, ll ql, ll qr){
+            if(ql>r || qr<l) return 0;
+            if(ql<=l && qr>=r) return tree[node];
+            ll mid = (l+r)/2;
+            ll leftans = query(2*node,l,mid,ql,qr);
+            ll rightans = query(2*node+1,mid+1,r,ql,qr);
+            return leftans+rightans;
+        }
+        ll query(ll ql,ll qr){
+            return query(1,1,n,ql,qr);
+        }
+        void update(ll idx,ll val){
+            update(1,1,n,idx,val);
+        }
+    };
+
+    struct lazyseg{
+        vll lazy;
+        vll tree;
+        vll a;
+        ll n;
+        lazyseg(vll &aa){
+            n = aa.size()-1;
+            a = aa;
+            lazy.assign(4*n+1,0);
+            tree.assign(4*n+1,0);
+            build(1,1,n);
+        }
+        void build(ll node,ll l,ll r){
+            if(l == r){
+                tree[node] = a[l];
+                return;
+            }
+            ll mid = (l+r)/2;
+            build(node*2,l,mid);
+            build(node*2+1,mid+1,r);
+            tree[node] = tree[node*2] + tree[node*2+1];
+        }
+        void push(ll node,ll l, ll r){
+            if(lazy[node] == 0) return;
+
+            ll mid = (l+r)/2;
+            tree[node*2] += lazy[node]*(mid-l+1);
+            lazy[node*2] += lazy[node];
+
+            tree[node*2+1] += lazy[node] *(r-mid);
+            lazy[node*2+1] += lazy[node];
+            lazy[node] = 0;
+        }
+
+        void update(ll node,ll l,ll r,ll ql,ll qr,ll val){
+            if(ql>r || qr<l) return;
+            if(l>=ql && r<=qr){
+                tree[node] += (r-l+1)*val;
+                lazy[node] += val;
+                return;
+            }
+            push(node,l,r);
+            ll mid = (l+r)/2;
+            update(node*2,l,mid,ql,qr,val);
+            update(node*2+1,mid+1,r,ql,qr,val);
+            tree[node] = tree[node*2] + tree[node*2+1];
+
+        }
+        ll query(ll node,ll l,ll r,ll ql,ll qr){
+            if(ql>r || qr<l) return 0;
+            if(ql>=l && qr<=r){
+                return tree[node];
+            }
+            push(node,l,r);
+            ll mid = (l+r)/2;
+            ll leftans = query(node*2,l,mid,ql,qr);
+            ll rightans = query(node*2+1,mid+1,r,ql,qr);
+            return leftans+rightans;
+        }
+        ll query(ll ql,ll qr){
+            return query(1,1,n,ql,qr);
+        }
+        void update(ll ql,ll qr,ll val){
+            update(1,1,n,ql,qr,val);
+        }
+    };
 
 struct lca{
     vll depth;
