@@ -1,0 +1,660 @@
+#include <bits/stdc++.h>
+#include <random>
+#include <chrono>
+// #pragma GCC optimize("unroll-loops")
+// #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
+using namespace std;
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+#define getrand(l, r) uniform_int_distribution<int>(l, r)(rng)
+#define f first
+#define s second
+#define pb push_back
+#define oo LLONG_MAX
+#define ll long long
+#define ld long double
+#define vll vector<ll>
+#define mll map<ll, ll>
+#define vpll vector<pair<ll, ll>>
+#define sort_(b) sort(b.begin(), b.end())
+#define rsort_(b) sort(b.rbegin(), b.rend())
+#define take(a) cin >> a;
+#define take_vector(a) \
+    for (auto &i : a)  \
+        cin >> i;
+#define print_zero cout << 0 << endl
+#define print_YES cout << "YES" << endl
+#define print_Yes cout << "Yes" << endl
+#define print_NO cout << "NO" << endl
+#define print_No cout << "No" << endl
+#define print(a) cout << a
+#define space << " "
+#define not_found cout << -1 << endl;
+#define take_sum(sum, a) \
+    for (auto &i : a)    \
+        sum += i;
+#define stakoza                  \
+    ios::sync_with_stdio(false); \
+    cin.tie(0);                  \
+    cout.tie(0);
+const long double EPS = 1e-12L;
+
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+
+template <class T>
+using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+template <class T>
+using ordered_multiset = tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+vll primes;
+vector<bool> p(1e6 + 1, true);
+vll spf(1e6 + 1, 0);
+void precompute()
+{
+    for (int i = 2; i <= 1e6; i++)
+    {
+        if (!p[i])
+            continue;
+        spf[i] = i;
+        primes.push_back(i);
+        for (int j = i * 2; j <= 1e6; j += i)
+        {
+            p[j] = false;
+            if (spf[j] == 0)
+                spf[j] = i;
+        }
+    }
+}
+const int MOD = 1e9+7;
+ 
+inline ll add(ll a, ll b)
+{
+    return (a + b) % MOD;
+}
+ 
+inline ll sub(ll a, ll b)
+{
+    return (a - b + MOD) % MOD;
+}
+ 
+inline ll mul(ll a, ll b)
+{
+    return (ll)a * b % MOD;
+}
+ 
+ll power(ll x, ll p)
+{
+    ll ret = 1;
+    while (p > 0)
+    {
+        if (p % 2)
+            ret = mul(ret, x);
+        p /= 2;
+        x = mul(x, x);
+    }
+    return ret;
+}
+ 
+ll inv(ll x)
+{
+    return power(x, MOD - 2);
+}
+ 
+inline ll divide(ll a, ll b)
+{
+    return mul(a, inv(b));
+}
+vll f(1000001, 1);
+ 
+//  must call pre if you want to use ncr,npr and factorials.
+void pre()
+{
+    for (int i = 2; i <= 1000000; i++)
+    {
+        f[i] = mul(i, f[i - 1]);
+    }
+}
+ 
+int fact(int x)
+{
+    return f[x];
+}
+ 
+int nPr(int n, int r)
+{
+    return divide(fact(n), fact(n - r));
+}
+ 
+int nCr(int n, int r)
+{
+    if (n < r)
+        return 0;
+    return divide(fact(n), mul(fact(n - r), fact(r)));
+}
+ 
+struct dsu
+{
+    vll parent;
+    vll size;
+    ll largest;
+    ll components;
+    dsu(ll n)
+    {
+        parent.resize(n + 1);
+        iota(parent.begin(), parent.end(), 0);
+        size.resize(n + 1, 1);
+        largest = 1;
+        components = n;
+        for(int i = 1;i<=n;i++) make_set(i);
+    }
+    void make_set(ll v)
+    {
+        parent[v] = v;
+        size[v] = 1;
+    }
+ 
+    ll find_set(ll v)
+    {
+        if (v == parent[v])
+            return v;
+        return parent[v] = find_set(parent[v]);
+    }
+ 
+    void union_sets(ll a, ll b)
+    {
+        a = find_set(a);
+        b = find_set(b);
+        if (a == b)
+            return;
+        if (size[a] < size[b])
+            swap(a, b);
+        parent[b] = a;
+        size[a] += size[b];
+        largest = max(size[a], largest);
+        components--;
+    }
+};
+ 
+struct Fenwick
+{
+    int n;
+    vll bit;
+    Fenwick(int _n = 0)
+    {
+        init(_n);
+    }
+    void init(int _n)
+    {
+        n = _n;
+        bit.assign(n + 1, 0);
+    }
+ 
+    // O(n) build from 1-based array a (a[0] ignored)
+    Fenwick(const vector<ll> &a)
+    {
+        n = (int)a.size() - 1;
+        bit = a; // copy
+        for (int i = 1; i <= n; ++i)
+        {
+            int j = i + (i & -i);
+            if (j <= n)
+                bit[j] += bit[i];
+        }
+    }
+ 
+    void add(int idx, ll val)
+    {
+        for (; idx <= n; idx += idx & -idx)
+            bit[idx] += val;
+    }
+    ll sum(int idx) const
+    {
+        ll res = 0;
+        for (; idx > 0; idx -= idx & -idx)
+            res += bit[idx];
+        return res;
+    }
+};
+ 
+struct FenwickRange
+{
+    int n;
+    Fenwick B1, B2;
+    FenwickRange()
+    {
+        n = 0;
+    }
+    FenwickRange(int _n)
+    {
+        init(_n);
+    }
+    void init(int _n)
+    {
+        n = _n;
+        B1.init(n);
+        B2.init(n);
+    }
+ 
+    // Build in O(n) from 0-based array a0
+    FenwickRange(const vector<ll> &a0)
+    {
+        int m = (int)a0.size();
+        n = m;
+        // 1-based A
+        vector<ll> A(n + 1, 0);
+        for (int i = 1; i <= n; ++i)
+            A[i] = a0[i - 1];
+ 
+        // D[i] = A[i] - A[i-1]
+        vector<ll> D(n + 1, 0);
+        for (int i = 1; i <= n; ++i)
+            D[i] = A[i] - A[i - 1];
+ 
+        // prepare 1-based raw arrays for B1 and B2
+        vector<ll> rawB1(n + 1, 0), rawB2(n + 1, 0);
+        for (int i = 1; i <= n; ++i)
+        {
+            rawB1[i] = D[i];
+            rawB2[i] = D[i] * (ll)(i - 1);
+        }
+ 
+        B1 = Fenwick(rawB1); // O(n)
+        B2 = Fenwick(rawB2); // O(n)
+    }
+ 
+    // range add [l..r] (1-based)
+    void range_add1(int l, int r, ll val)
+    {
+        if (l > r)
+            return;
+        B1.add(l, val);
+        B1.add(r + 1, -val);
+        B2.add(l, val * (l - 1));
+        B2.add(r + 1, -val * r);
+    }
+ 
+    // prefix sum [1..idx] (1-based)
+    ll prefix_sum1(int idx) const
+    {
+        if (idx <= 0)
+            return 0;
+        ll s1 = B1.sum(idx);
+        ll s2 = B2.sum(idx);
+        return s1 * idx - s2;
+    }
+ 
+    // range sum [l..r] (1-based)
+    ll range_sum1(int l, int r) const
+    {
+        if (r < l)
+            return 0;
+        return prefix_sum1(r) - prefix_sum1(l - 1);
+    }
+};
+ 
+
+ 
+struct Prefix2D {
+    ll n, m;
+    vector<vector<ll>> pref;
+
+    // O(N * M) Build: Takes a 0-based grid and creates a 1-based prefix sum matrix
+    Prefix2D(const vector<vector<ll>>& a) {
+        if (a.empty() || a[0].empty()) {
+            n = m = 0;
+            return;
+        }
+        n = a.size();
+        m = a[0].size();
+        pref.assign(n + 1, vector<ll>(m + 1, 0));
+
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                pref[i][j] = a[i - 1][j - 1] + pref[i - 1][j] + pref[i][j - 1] - pref[i - 1][j - 1];
+            }
+        }
+    }
+
+    // O(1) Query: Returns the sum of the subgrid from (r1, c1) to (r2, c2)
+    // IMPORTANT: Queries MUST use 1-based indexing!
+    ll query(ll r1, ll c1, ll r2, ll c2) {
+        if (r1 > r2 || c1 > c2) return 0;
+        
+        // Safety clamps just in case queries go out of bounds
+        r1 = max(1, r1); c1 = max(1, c1);
+        r2 = min(n, r2); c2 = min(m, c2);
+        
+        return pref[r2][c2] - pref[r1 - 1][c2] - pref[r2][c1 - 1] + pref[r1 - 1][c1 - 1];
+    }
+};
+ 
+struct sp
+{
+    vector<ll> arr;
+    vector<vector<ll>> freq;
+    ll logs;
+    ll n;
+    sp(vector<ll> &a)
+    {
+        // initialize using a 0-indexed array
+        arr = a;
+        n = arr.size();
+        logs = 63 - __builtin_clzll(n) + 1;
+        freq.resize(logs);
+        build();
+    }
+    void build()
+    {
+        for (int i = 0; i < n; i++)
+            freq[0].push_back(arr[i]);
+        for (int i = 1; i < logs; i++)
+        {
+            for (int j = 0; j + (1 << (i - 1)) < freq[i - 1].size(); j++)
+            {
+                freq[i].push_back(min(freq[i - 1][j], freq[i - 1][j + ((1 << (i - 1)))]));
+            }
+        }
+    }
+    ll query(ll l, ll r)
+    {
+        // queries expect 1-based indices,they are handled in the query fucntion.
+        if (l > r)
+            return oo;
+        --l;
+        --r;
+        ll len = r - l + 1;
+        if (len <= 0)
+            return oo;
+ 
+        ll k = 63 - __builtin_clzll(len);
+ 
+        if (logs == 0)
+            return oo;
+        if (k >= logs)
+            k = logs - 1;
+        return min(freq[k][l], freq[k][r - (1LL << k) + 1]);
+ 
+        return oo;
+    }
+};
+ 
+const ll MAXA = 2e5;
+vector<ll> spf(MAXA + 1);
+void sieve()
+{
+    for (int i = 1; i <= MAXA; i++)
+        spf[i] = i;
+    for (int i = 2; i * i <= MAXA; i++)
+    {
+        if (spf[i] == i)
+        {
+            for (int j = i * i; j <= MAXA; j += i)
+            {
+                if (spf[j] == j)
+                {
+                    spf[j] = i;
+                }
+            }
+        }
+    }
+}
+vpll get_prime_factors(int x) {
+    vector<pair<ll, ll>> fac;
+    while (x > 1) {
+        ll p = spf[x], cnt = 0;
+        while (x % p == 0) {
+            x /= p;
+            cnt++;
+        }
+        fac.push_back({p, cnt});
+    }
+    return fac;
+}
+
+vector<ll> get_all_divisors(int x) {
+    vpll fac = get_prime_factors(x);
+    vector<ll> divs = {1};
+    for (auto [p, c] : fac) {
+        ll sz = divs.size();
+        ll cur = 1;
+        for (int i = 1; i <= c; i++) {
+            cur *= p;
+            for (int j = 0; j < sz; j++)
+                divs.push_back(divs[j] * cur);
+        }
+    }
+    return divs;
+}
+
+ void euler(ll curr,ll parent,ll &tim,vector<vll> &adj,vll &start,vll &end){
+    start[curr] = tim++;
+    for(auto it : adj[curr]){
+        if(it == parent) continue;
+        euler(it,curr,tim,adj,start,end);
+    }
+    end[curr] = tim-1;
+}
+
+
+struct seg{
+        ll n;
+        vll tree;
+        vll a;
+        seg(vll &aa){
+            n = aa.size()-1;
+            a = aa;
+            tree.assign(4*n+1,0);
+            build(1,1,n);
+        }
+        void build(ll node, ll l, ll r){
+            if(l == r){
+                tree[node] = a[l];
+                return;
+            }
+            ll mid = (l+r)/2;
+            build(2*node,l,mid);
+            build(2*node+1,mid+1,r);
+            tree[node] = tree[node*2] + tree[node*2+1];
+        }
+
+        void update(ll node ,ll l,ll r,ll idx,ll val){
+            if(l == r){
+                tree[node] = val;
+                return;
+            }
+            ll mid = (l+r)/2;
+            if(idx<=mid){
+                update(2*node,l,mid,idx,val);
+            }
+            else{
+                update(2*node+1,mid+1,r,idx,val);
+            }
+            tree[node] = tree[node*2] + tree[node*2+1];
+        }
+
+        ll query(ll node,ll l,ll r, ll ql, ll qr){
+            if(ql>r || qr<l) return 0;
+            if(ql<=l && qr>=r) return tree[node];
+            ll mid = (l+r)/2;
+            ll leftans = query(2*node,l,mid,ql,qr);
+            ll rightans = query(2*node+1,mid+1,r,ql,qr);
+            return leftans+rightans;
+        }
+        ll query(ll ql,ll qr){
+            return query(1,1,n,ql,qr);
+        }
+        void update(ll idx,ll val){
+            update(1,1,n,idx,val);
+        }
+    };
+
+    struct lazyseg{
+        vll lazy;
+        vll tree;
+        vll a;
+        ll n;
+        lazyseg(vll &aa){
+            n = aa.size()-1;
+            a = aa;
+            lazy.assign(4*n+1,0);
+            tree.assign(4*n+1,0);
+            build(1,1,n);
+        }
+        void build(ll node,ll l,ll r){
+            if(l == r){
+                tree[node] = a[l];
+                return;
+            }
+            ll mid = (l+r)/2;
+            build(node*2,l,mid);
+            build(node*2+1,mid+1,r);
+            tree[node] = tree[node*2] + tree[node*2+1];
+        }
+        void push(ll node,ll l, ll r){
+            if(lazy[node] == 0) return;
+
+            ll mid = (l+r)/2;
+            tree[node*2] += lazy[node]*(mid-l+1);
+            lazy[node*2] += lazy[node];
+
+            tree[node*2+1] += lazy[node] *(r-mid);
+            lazy[node*2+1] += lazy[node];
+            lazy[node] = 0;
+        }
+
+        void update(ll node,ll l,ll r,ll ql,ll qr,ll val){
+            if(ql>r || qr<l) return;
+            if(l>=ql && r<=qr){
+                tree[node] += (r-l+1)*val;
+                lazy[node] += val;
+                return;
+            }
+            push(node,l,r);
+            ll mid = (l+r)/2;
+            update(node*2,l,mid,ql,qr,val);
+            update(node*2+1,mid+1,r,ql,qr,val);
+            tree[node] = tree[node*2] + tree[node*2+1];
+
+        }
+        ll query(ll node,ll l,ll r,ll ql,ll qr){
+            if(ql>r || qr<l) return 0;
+            if(ql>=l && qr<=r){
+                return tree[node];
+            }
+            push(node,l,r);
+            ll mid = (l+r)/2;
+            ll leftans = query(node*2,l,mid,ql,qr);
+            ll rightans = query(node*2+1,mid+1,r,ql,qr);
+            return leftans+rightans;
+        }
+        ll query(ll ql,ll qr){
+            return query(1,1,n,ql,qr);
+        }
+        void update(ll ql,ll qr,ll val){
+            update(1,1,n,ql,qr,val);
+        }
+    };
+
+    struct lca {
+    ll n, lg;
+    vector<ll> depth;
+    vector<vector<ll>> up;
+
+    // 1-Based Constructor: pass N and an unweighted adjacency list
+    lca(int nodes, const vector<vector<ll>>& adj, ll root = 1) {
+        n = nodes;
+        lg = 32 - __builtin_clz(n); // Dynamically sizes the log array
+        depth.assign(n + 1, 0);
+        up.assign(n + 1, vector<ll>(lg, 0));
+
+        queue<ll> q;
+        vector<bool> vis(n + 1, false);
+
+        q.push(root);
+        vis[root] = true;
+        depth[root] = 0;
+        up[root][0] = root; // Safety bounce at the root
+
+        // BFS Initialization
+        while (!q.empty()) {
+            ll u = q.front();
+            q.pop();
+
+            for (int v : adj[u]) {
+                if (!vis[v]) {
+                    vis[v] = true;
+                    depth[v] = depth[u] + 1;
+                    up[v][0] = u;
+                    q.push(v);
+                }
+            }
+        }
+
+        // Build Binary Lifting Table
+        for (int j = 1; j < lg; j++) {
+            for (int i = 1; i <= n; i++) {
+                up[i][j] = up[up[i][j - 1]][j - 1];
+            }
+        }
+    }
+
+    // Find Lowest Common Ancestor
+    int get_lca(ll u, ll v) {
+        if (depth[u] < depth[v]) swap(u, v);
+        
+        // Step 1: Equalize depths
+        ll diff = depth[u] - depth[v];
+        for (int j = 0; j < lg; j++) {
+            if ((diff >> j) & 1) {
+                u = up[u][j];
+            }
+        }
+        
+        if (u == v) return u;
+
+        // Step 2: Jump up together just below the lca
+        for (int j = lg - 1; j >= 0; j--) {
+            if (up[u][j] != up[v][j]) {
+                u = up[u][j];
+                v = up[v][j];
+            }
+        }
+        
+        return up[u][0]; // Return the direct parent
+    }
+    ll get_dist(ll u, ll v) {
+        ll lca_node = get_lca(u, v);
+        return depth[u] + depth[v] - 2 * depth[lca_node];
+    }
+    ll get_kth(ll u, ll k) {
+        if (depth[u] < k) return -1;
+        for (int j = 0; j < lg; j++) {
+            if ((k >> j) & 1) {
+                u = up[u][j];
+            }
+        }
+        return u;
+    }
+    // Returns the K-th node on the simple path from u to v (0-indexed steps).
+    // k = 0 returns u. If k >= distance, returns v.
+    ll get_node_on_path(ll u, ll v, ll k) {
+        ll lca_node = get_lca(u, v);
+        ll dist_u_to_lca = depth[u] - depth[lca_node];
+        ll total_dist = dist_u_to_lca + (depth[v] - depth[lca_node]);
+
+        if (k >= total_dist) return v;
+        if (k == 0) return u;
+
+        if (k <= dist_u_to_lca) {
+            // The target is on the way up from u to the LCA
+            return get_kth(u, k);
+        } else {
+            // The target is on the way down from the LCA to v
+            // Equivalent to jumping up from v
+            ll jump_from_v = total_dist - k;
+            return get_kth(v, jump_from_v);
+        }
+    }
+};
+
