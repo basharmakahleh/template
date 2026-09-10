@@ -658,3 +658,30 @@ struct seg{
     }
 };
 
+void SCC(ll curr,vector<vll> &adj,vll &start,vll &mn,stack<ll> &st,ll &time,vll &status,vll &parent,vll &roots){
+        start[curr] = time++;
+        mn[curr] = start[curr];
+        status[curr] =1;
+        st.push(curr);
+        for(auto it : adj[curr]){
+            if(status[it] == 0){
+                dfs(it,adj,start,mn,st,time,status,parent,roots);
+                mn[curr] = min(mn[curr],mn[it]);
+            }
+            else if(status[it] == 1){
+                mn[curr] = min(mn[curr],start[it]);
+            }
+ 
+        }
+ 
+        if(mn[curr] == start[curr]){
+            roots.pb(curr);
+            while(true){
+                ll no = st.top();
+                st.pop();
+                parent[no] = curr;
+                status[no] = 2;
+                if(curr == no) break;
+            }
+        }
+    }
